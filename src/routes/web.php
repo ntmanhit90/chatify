@@ -97,8 +97,10 @@ Route::post('/updateSettings', 'MessagesController@updateSettings')->name('avata
 Route::post('/setActiveStatus', 'MessagesController@setActiveStatus')->name('activeStatus.set');
 
 
-
-
+/**
+ * GROUP CHAT
+ */
+Route::post('/conversation', 'MessagesController@setActiveStatus')->name('conv.create');
 
 
 /*
