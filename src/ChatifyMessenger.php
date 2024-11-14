@@ -4,6 +4,8 @@ namespace Chatify;
 
 use App\Models\ChMessage as Message;
 use App\Models\ChFavorite as Favorite;
+use App\Models\ChConversation as Conversation;
+use App\Models\ChConversationUser as ConversationUser;
 use Illuminate\Support\Facades\Storage;
 use Pusher\Pusher;
 use Illuminate\Support\Facades\Auth;
@@ -441,5 +443,36 @@ class ChatifyMessenger
     public function getAttachmentUrl($attachment_name)
     {
         return self::storage()->url(config('chatify.attachments.folder') . '/' . $attachment_name);
+    }
+
+    /**
+     * create a new conversation to database
+     *
+     * @param array $data
+     * @return Conversation
+     */
+    public function newConversation($data)
+    {
+        $conv = new Conversation();
+        $conv->name = $data['name'];
+        $conv->status = config('chatify.constants.conv_status_open');
+        $conv->save();
+        return $conv;
+    }
+
+    /**
+     * create a new conversation to database
+     *
+     * @param array $data
+     * @return ConversationUser
+     */
+    public function newConversationUser($data)
+    {
+        $convUser = new ConversationUser();
+        $convUser->conversation_id = $data['conversation_id'];
+        $convUser->user_id = Auth::user()->id;
+        $convUser->unread_count = 0;
+        $convUser->save();
+        return $convUser;
     }
 }

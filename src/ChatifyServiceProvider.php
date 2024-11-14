@@ -64,6 +64,7 @@ class ChatifyServiceProvider extends ServiceProvider
             __DIR__ . '/database/migrations/2022_01_10_99999_add_messenger_color_to_users.php' => database_path('migrations/' . date('Y_m_d') . '_999999_add_messenger_color_to_users.php'),
             __DIR__ . '/database/migrations/2022_01_10_99999_create_chatify_favorites_table.php' => database_path('migrations/' . date('Y_m_d') . '_999999_create_chatify_favorites_table.php'),
             __DIR__ . '/database/migrations/2022_01_10_99999_create_chatify_messages_table.php' => database_path('migrations/' . date('Y_m_d') . '_999999_create_chatify_messages_table.php'),
+            __DIR__ . '/database/migrations/2024_11_14_100912_chatify_group_chat.php' => database_path('migrations/' . date('Y_m_d') . '_999999_create_chatify_group_chat.php'),
         ], 'chatify-migrations');
 
         // Models

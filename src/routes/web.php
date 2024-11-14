@@ -118,3 +118,8 @@ Route::get('/group/{id}', 'MessagesController@index')->name('group');
 // Route::get('/route', function(){ return 'Munaf'; }); // works as a route
 Route::get('/{id}', 'MessagesController@index')->name('user');
 // Route::get('/route', function(){ return 'Munaf'; }); // works as a user id
+
+/*
+* [GroupCHAT]
+*/
+Route::post('/conversation', 'MessagesController@createConv')->name('conv.create');

@@ -29,7 +29,7 @@ return new class extends Migration
             $table->bigInteger('conversation_id');
             $table->bigInteger('user_id');
             $table->timestamp('last_read');
-            $table->integer('unread_count');
+            $table->integer('unread_count')->default(0);
             $table->timestamps();
         });
     }

@@ -120,5 +120,14 @@ return [
         'enabled' => true,
         'public_path' => 'sounds/chatify',
         'new_message' => 'new-message-sound.mp3',
+    ],
+    /*
+    |-------------------------------------
+    | Constants
+    |-------------------------------------
+    */
+    'constants' => [
+        'conv_status_close' => 0,
+        'conv_status_open' => 1,
     ]
 ];

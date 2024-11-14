@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Response;
 use App\Models\User;
 use App\Models\ChMessage as Message;
 use App\Models\ChFavorite as Favorite;
+use App\Models\ChConversation as Conversation;
+use App\Models\ChConversationUser as ConversationUser;
 use Chatify\Facades\ChatifyMessenger as Chatify;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -480,5 +482,30 @@ class MessagesController extends Controller
         return Response::json([
             'status' => $status,
         ], 200);
+    }
+
+    public function createConv(Request $request)
+    {
+        // Validation Data
+        $request->validate([
+            'name' => 'required|max:100|unique:ch_conversations'
+        ], [
+            'name.required' => __('Please give a conversation name')
+        ]);
+
+        // Create Conversation
+        $conv = Chatify::newConversation([
+            'name' => $request->get('name'),
+        ]);
+
+        $convUser = Chatify::newConversationUser([
+            'conversation_id' => $conv->id
+        ]);
+
+        // send the response
+        return Response::json([
+            'status' => '200',
+            'conversation' => $conv
+        ]);
     }
 }
