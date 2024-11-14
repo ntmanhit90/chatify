@@ -18,6 +18,7 @@ return new class extends Migration
         // Create conversations
         Schema::create('ch_conversations', function (Blueprint $table) {
             $table->id();
+            $table->bigInteger('batch_id');
             $table->string('name');
             $table->boolean('status')->comment('1: Open, 0: Closed');
             $table->timestamps();

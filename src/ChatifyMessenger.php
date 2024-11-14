@@ -455,6 +455,7 @@ class ChatifyMessenger
     {
         $conv = new Conversation();
         $conv->name = $data['name'];
+        $conv->batch_id = $data['batch_id'];
         $conv->status = config('chatify.constants.conv_status_open');
         $conv->save();
         return $conv;
@@ -470,7 +471,7 @@ class ChatifyMessenger
     {
         $convUser = new ConversationUser();
         $convUser->conversation_id = $data['conversation_id'];
-        $convUser->user_id = Auth::user()->id;
+        $convUser->user_id = $data['user_id'];
         $convUser->unread_count = 0;
         $convUser->save();
         return $convUser;

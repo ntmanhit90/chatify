@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Request as FacadesRequest;
 use Illuminate\Support\Str;
+use App\Models\Batch;
 class MessagesController extends Controller
 {
     protected $perPage = 30;
@@ -246,7 +247,7 @@ class MessagesController extends Controller
                 $contacts .= Chatify::getContactItem($user);
             }
         } else {
-            $contacts = '<p class="message-hint center-el"><span>Your contact list is empty</span></p>';
+            $contacts = '<p class="message-hint center-el"><span>The conversation is empty</span></p>';
         }
 
         return Response::json([
@@ -488,24 +489,45 @@ class MessagesController extends Controller
     {
         // Validation Data
         $request->validate([
-            'name' => 'required|max:100|unique:ch_conversations'
+            'name' => 'required|max:100|unique:ch_conversations',
+            'batch_id' => 'required|integer|min:1'
         ], [
             'name.required' => __('Please give a conversation name')
         ]);
 
-        // Create Conversation
-        $conv = Chatify::newConversation([
-            'name' => $request->get('name'),
-        ]);
+        $batch_id = $request->get('batch_id');
+        $batch = Batch::find($batch_id);
+        if ($batch) {
+            // Create Conversation
+            $conv = Chatify::newConversation([
+                'name' => $request->get('name'),
+                'batch_id' => $request->get('batch_id'),
+            ]);
 
-        $convUser = Chatify::newConversationUser([
-            'conversation_id' => $conv->id
-        ]);
+            $user_id = Auth::user()->id;
+            Chatify::newConversationUser([
+                'conversation_id' => $conv->id,
+                'user_id' => $user_id
+            ]);
+
+            if ($batch->created_by != $user_id) {
+                Chatify::newConversationUser([
+                    'conversation_id' => $conv->id,
+                    'user_id' => $batch->created_by
+                ]);
+            }
+
+            // send the response
+            return Response::json([
+                'status' => '200',
+                'conversation' => $conv
+            ]);
+        }
 
         // send the response
         return Response::json([
-            'status' => '200',
-            'conversation' => $conv
+            'status' => '404',
+            'message' => __('Batch is not found')
         ]);
     }
 }
