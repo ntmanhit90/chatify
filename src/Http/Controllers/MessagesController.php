@@ -2,6 +2,9 @@
 
 namespace Chatify\Http\Controllers;
 
+use Chatify\Models\ChConversationUser;
+use Carbon\Carbon;
+use Chatify\Models\ChConversation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -134,23 +137,42 @@ class MessagesController extends Controller
         }
 
         if (!$error->status) {
+            $user_id = Auth::user()->id;
             $message = Chatify::newMessage([
                 'from_id' => Auth::user()->id,
-                'to_id' => $request['id'],
+                'conversation_id' => $request['id'],
+                'to_id' => 0,
                 'body' => htmlentities(trim($request['message']), ENT_QUOTES, 'UTF-8'),
                 'attachment' => ($attachment) ? json_encode((object)[
                     'new_name' => $attachment,
                     'old_name' => htmlentities(trim($attachment_title), ENT_QUOTES, 'UTF-8'),
                 ]) : null,
             ]);
+
+            // Push notify
             $messageData = Chatify::parseMessage($message);
             if (Auth::user()->id != $request['id']) {
                 Chatify::push("private-chatify.".$request['id'], 'messaging', [
                     'from_id' => Auth::user()->id,
-                    'to_id' => $request['id'],
+                    'conversation_id' => $request['id'],
+                    'to_id' => 0,
                     'message' => Chatify::messageCard($messageData, true)
                 ]);
             }
+
+            // Update last_message_id for conversation
+            $conversation = ChConversation::find($request['id']);
+            if ($conversation && $message) {
+                $conversation->last_message_id = $message->id;
+                $conversation->last_message_datetime = Carbon::now();
+                $conversation->save();
+            }
+
+            // Update unread count
+            $conversation_users = ChConversationUser::where([
+                ['conversation_id', $request['id']],
+                //['user_id', '!=', $user_id],
+            ])->increment('unread_count');
         }
 
         // send the response
@@ -229,15 +251,15 @@ class MessagesController extends Controller
             $join->on('ch_messages.from_id', '=', 'users.id')
                 ->orOn('ch_messages.to_id', '=', 'users.id');
         })
-        ->where(function ($q) {
-            $q->where('ch_messages.from_id', Auth::user()->id)
-            ->orWhere('ch_messages.to_id', Auth::user()->id);
-        })
-        ->where('users.id','!=',Auth::user()->id)
-        ->select('users.*',DB::raw('MAX(ch_messages.created_at) max_created_at'))
-        ->orderBy('max_created_at', 'desc')
-        ->groupBy('users.id')
-        ->paginate($request->per_page ?? $this->perPage);
+            ->where(function ($q) {
+                $q->where('ch_messages.from_id', Auth::user()->id)
+                    ->orWhere('ch_messages.to_id', Auth::user()->id);
+            })
+            ->where('users.id','!=',Auth::user()->id)
+            ->select('users.*',DB::raw('MAX(ch_messages.created_at) max_created_at'))
+            ->orderBy('max_created_at', 'desc')
+            ->groupBy('users.id')
+            ->paginate($request->per_page ?? $this->perPage);
 
         $usersList = $users->items();
 
@@ -265,14 +287,15 @@ class MessagesController extends Controller
      */
     public function updateContactItem(Request $request)
     {
-        // Get user data
-        $user = User::where('id', $request['user_id'])->first();
-        if(!$user){
+        // Get conversation data
+        $conversation = ChConversation::where('id', $request['user_id'])->first();
+        if(!$conversation){
             return Response::json([
-                'message' => 'User not found!',
+                'message' => 'Conversation not found!',
             ], 401);
         }
-        $contactItem = Chatify::getContactItem($user);
+        $user = Auth::user();
+        $contactItem = Chatify::getContactItem($user, $conversation);
 
         // send the response
         return Response::json([
@@ -336,8 +359,8 @@ class MessagesController extends Controller
         $getRecords = null;
         $input = trim(filter_var($request['input']));
         $records = User::where('id','!=',Auth::user()->id)
-                    ->where('name', 'LIKE', "%{$input}%")
-                    ->paginate($request->per_page ?? $this->perPage);
+            ->where('name', 'LIKE', "%{$input}%")
+            ->paginate($request->per_page ?? $this->perPage);
         foreach ($records->items() as $record) {
             $getRecords .= view('Chatify::layouts.listItem', [
                 'get' => 'search_item',

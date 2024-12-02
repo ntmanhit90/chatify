@@ -24,15 +24,16 @@ class ConversationController extends Controller
     {
         $user_id = Auth::user()->id;
         $rows = ChConversation::where([
-            'ch_converstation_user.user_id' => $user_id,
+            'ch_conversation_users.user_id' => $user_id,
         ])
-        ->join('ch_converstation_user', 'ch_conversations.id', '=', 'ch_conversation_user.conversation_id')
-        ->paginate($request->per_page ?? $this->perPage);
+            ->join('ch_conversation_users', 'ch_conversations.id', '=', 'ch_conversation_users.conversation_id')
+            ->orderBy('ch_conversations.last_message_datetime', 'DESC')
+            ->paginate($request->per_page ?? $this->perPage);
 
         if ($rows->count() > 0) {
             $user = Auth::user();
             $contacts = '';
-            foreach ($rows as $row) {
+            foreach ($rows->items() as $row) {
                 $contacts .= Chatify::getContactItem($user, $row);
             }
         } else {
@@ -99,6 +100,14 @@ class ConversationController extends Controller
         return Response::json([
             'status' => '404',
             'message' => __('Batch is not found')
+        ]);
+    }
+
+    public function view(Request $request, ChConversation $conversation)
+    {
+        return Response::json([
+            'fetch' => true,
+            'conversation' => $conversation,
         ]);
     }
 }

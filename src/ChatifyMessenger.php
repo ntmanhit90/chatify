@@ -6,6 +6,9 @@ use App\Models\ChMessage as Message;
 use App\Models\ChFavorite as Favorite;
 use App\Models\ChConversation as Conversation;
 use App\Models\ChConversationUser as ConversationUser;
+use Carbon\Carbon;
+use Chatify\Models\ChConversation;
+use Chatify\Models\ChConversationUser;
 use Illuminate\Support\Facades\Storage;
 use Pusher\Pusher;
 use Illuminate\Support\Facades\Auth;
@@ -210,6 +213,7 @@ class ChatifyMessenger
     {
         $message = new Message();
         $message->from_id = $data['from_id'];
+        $message->conversation_id = $data['conversation_id'];
         $message->to_id = $data['to_id'];
         $message->body = $data['body'];
         $message->attachment = $data['attachment'];
@@ -221,16 +225,25 @@ class ChatifyMessenger
      * Make messages between the sender [Auth user] and
      * the receiver [User id] as seen.
      *
-     * @param int $user_id
+     * @param int $conversation_id
      * @return bool
      */
-    public function makeSeen($user_id)
+    public function makeSeen($conversation_id)
     {
-        Message::Where('from_id', $user_id)
-                ->where('to_id', Auth::user()->id)
-                ->where('seen', 0)
-                ->update(['seen' => 1]);
-        return 1;
+        $user_id = Auth::user()->id;
+        $conversation = ChConversation::find($conversation_id);
+        if (!$conversation) {
+            return false;
+        }
+
+        $conversation_user = ChConversationUser::where('user_id', $user_id)->where('conversation_id', $conversation_id)->first();
+        if ($conversation_user) {
+            $conversation_user->last_read = Carbon::now();
+            $conversation_user->unread_count = 0;
+            $conversation_user->save();
+        }
+
+        return true;
     }
 
     /**
@@ -267,7 +280,7 @@ class ChatifyMessenger
     {
         try {
             // get last message
-            $lastMessage = $this->getLastMessageQuery($row->last_message_id);
+            $lastMessage = $this->getLastMessageQuery($row->id);
             // Get Unseen messages counter
             $unseenCounter = $row->unread_count;
             if ($lastMessage) {
@@ -279,7 +292,7 @@ class ChatifyMessenger
                 'conversation' => $row,
                 'lastMessage' => $lastMessage,
                 'unseenCounter' => $unseenCounter,
-                ])->render();
+            ])->render();
         } catch (\Throwable $th) {
             throw new Exception($th->getMessage());
         }
@@ -312,8 +325,8 @@ class ChatifyMessenger
     public function inFavorite($user_id)
     {
         return Favorite::where('user_id', Auth::user()->id)
-                        ->where('favorite_id', $user_id)->count() > 0
-                        ? true : false;
+            ->where('favorite_id', $user_id)->count() > 0
+            ? true : false;
     }
 
     /**
@@ -357,7 +370,7 @@ class ChatifyMessenger
                     $attachment = json_decode($msg->attachment);
                     // determine the type of the attachment
                     in_array(pathinfo($attachment->new_name, PATHINFO_EXTENSION), $this->getAllowedImages())
-                    ? array_push($images, $attachment->new_name) : '';
+                        ? array_push($images, $attachment->new_name) : '';
                 }
             }
         }
