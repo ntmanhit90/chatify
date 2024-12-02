@@ -192,13 +192,12 @@ class ChatifyMessenger
     /**
      * Default fetch messages query between a Sender and Receiver.
      *
-     * @param int $user_id
+     * @param int $conversation_id
      * @return Message|\Illuminate\Database\Eloquent\Builder
      */
-    public function fetchMessagesQuery($user_id)
+    public function fetchMessagesQuery($conversation_id)
     {
-        return Message::where('from_id', Auth::user()->id)->where('to_id', $user_id)
-                    ->orWhere('from_id', $user_id)->where('to_id', Auth::user()->id);
+        return Message::where('conversation_id', $conversation_id);
     }
 
     /**
@@ -237,12 +236,12 @@ class ChatifyMessenger
     /**
      * Get last message for a specific user
      *
-     * @param int $user_id
+     * @param int $conversation_id
      * @return Message|Collection|\Illuminate\Database\Eloquent\Builder|\Illuminate\Database\Eloquent\Model|object|null
      */
-    public function getLastMessageQuery($user_id)
+    public function getLastMessageQuery($conversation_id)
     {
-        return $this->fetchMessagesQuery($user_id)->latest()->first();
+        return $this->fetchMessagesQuery($conversation_id)->latest()->first();
     }
 
     /**
@@ -261,23 +260,23 @@ class ChatifyMessenger
      * (e.g. User data, Last message, Unseen Counter...)
      *
      * @param int $messenger_id
-     * @param Collection $user
+     * @param Collection $row
      * @return string
      */
-    public function getContactItem($user)
+    public function getContactItem($user, $row)
     {
         try {
             // get last message
-            $lastMessage = $this->getLastMessageQuery($user->id);
+            $lastMessage = $this->getLastMessageQuery($row->last_message_id);
             // Get Unseen messages counter
-            $unseenCounter = $this->countUnseenMessages($user->id);
+            $unseenCounter = $row->unread_count;
             if ($lastMessage) {
                 $lastMessage->created_at = $lastMessage->created_at->toIso8601String();
                 $lastMessage->timeAgo = $lastMessage->created_at->diffForHumans();
             }
             return view('Chatify::layouts.listItem', [
-                'get' => 'users',
-                'user' => $this->getUserWithAvatar($user),
+                'get' => 'conv',
+                'conversation' => $row,
                 'lastMessage' => $lastMessage,
                 'unseenCounter' => $unseenCounter,
                 ])->render();
