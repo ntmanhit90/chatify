@@ -22,17 +22,27 @@ class ConversationController extends Controller
 
     public function index(Request $request)
     {
+        $q = $request->get('input');
         $user_id = Auth::user()->id;
         $rows = ChConversation::where([
             'ch_conversation_users.user_id' => $user_id,
         ])
             ->join('ch_conversation_users', 'ch_conversations.id', '=', 'ch_conversation_users.conversation_id')
-            ->orderBy('ch_conversations.last_message_datetime', 'DESC')
-            ->paginate($request->per_page ?? $this->perPage);
+            ->orderBy('ch_conversations.last_message_datetime', 'DESC');
+
+        if (!empty($q)) {
+            $rows = $rows->where('name', 'LIKE', "%{$q}%");
+        }
+
+        $rows = $rows->paginate($request->per_page ?? $this->perPage);
 
         if ($rows->count() > 0) {
             $user = Auth::user();
             $contacts = '';
+            $type = 'conv';
+            if (!empty($q)) {
+                $type = 'search_item';
+            }
             foreach ($rows->items() as $row) {
                 $contacts .= Chatify::getContactItem($user, $row);
             }

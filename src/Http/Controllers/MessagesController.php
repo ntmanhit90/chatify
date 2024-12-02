@@ -171,7 +171,7 @@ class MessagesController extends Controller
             // Update unread count
             $conversation_users = ChConversationUser::where([
                 ['conversation_id', $request['id']],
-                //['user_id', '!=', $user_id],
+                ['user_id', '!=', $user_id],
             ])->increment('unread_count');
         }
 
@@ -384,21 +384,29 @@ class MessagesController extends Controller
      * @param Request $request
      * @return JsonResponse|void
      */
-    public function sharedPhotos(Request $request)
+    public function sharedFiles(Request $request)
     {
-        $shared = Chatify::getSharedPhotos($request['user_id']);
-        $sharedPhotos = null;
+        $shared = Chatify::getSharedFiles($request->get('id'));
+        $sharedHtml = null;
 
         // shared with its template
-        for ($i = 0; $i < count($shared); $i++) {
-            $sharedPhotos .= view('Chatify::layouts.listItem', [
-                'get' => 'sharedPhoto',
-                'image' => Chatify::getAttachmentUrl($shared[$i]),
-            ])->render();
+        foreach ($shared as $attachment) {
+            if (in_array(pathinfo($attachment->new_name, PATHINFO_EXTENSION), Chatify::getAllowedImages())) {
+                $sharedHtml .= view('Chatify::layouts.listItem', [
+                    'get' => 'sharedPhoto',
+                    'image' => Chatify::getAttachmentUrl($attachment->new_name),
+                ])->render();
+            } else {
+                $sharedHtml .= view('Chatify::layouts.listItem', [
+                    'get' => 'sharedFile',
+                    'attachment' => $attachment,
+                ])->render();
+            }
         }
+
         // send the response
         return Response::json([
-            'shared' => count($shared) > 0 ? $sharedPhotos : '<p class="message-hint"><span>Nothing shared yet</span></p>',
+            'shared' => count($shared) > 0 ? $sharedHtml : '<p class="message-hint"><span>Nothing shared yet</span></p>',
         ], 200);
     }
 

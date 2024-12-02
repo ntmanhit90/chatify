@@ -67,14 +67,9 @@ Route::post('/star', 'MessagesController@favorite')->name('star');
 Route::post('/favorites', 'MessagesController@getFavorites')->name('favorites');
 
 /**
- * Search in messenger
- */
-Route::get('/search', 'MessagesController@search')->name('search');
-
-/**
  * Get shared photos
  */
-Route::post('/shared', 'MessagesController@sharedPhotos')->name('shared');
+Route::post('/shared', 'MessagesController@sharedFiles')->name('shared');
 
 /**
  * Delete Conversation
@@ -104,3 +99,7 @@ Route::get('/conversation', 'ConversationController@index')->name('conv.index');
 Route::post('/conversation', 'ConversationController@store')->name('conv.create');
 Route::get('/conversation/{conversation}', 'ConversationController@view')->name('conv.view');
 Route::post('/conversation/{conversation}/messages', 'MessagesController@fetch')->name('conv.messages');
+/**
+ * Search in messenger
+ */
+Route::get('/search', 'ConversationController@index')->name('search');

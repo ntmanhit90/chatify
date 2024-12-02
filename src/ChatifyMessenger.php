@@ -276,7 +276,7 @@ class ChatifyMessenger
      * @param Collection $row
      * @return string
      */
-    public function getContactItem($user, $row)
+    public function getContactItem($user, $row, $type = 'conv')
     {
         try {
             // get last message
@@ -288,7 +288,7 @@ class ChatifyMessenger
                 $lastMessage->timeAgo = $lastMessage->created_at->diffForHumans();
             }
             return view('Chatify::layouts.listItem', [
-                'get' => 'conv',
+                'get' => $type,
                 'conversation' => $row,
                 'lastMessage' => $lastMessage,
                 'unseenCounter' => $unseenCounter,
@@ -355,26 +355,28 @@ class ChatifyMessenger
     /**
      * Get shared photos of the conversation
      *
-     * @param int $user_id
+     * @param int $id
      * @return array
      */
-    public function getSharedPhotos($user_id)
+    public function getSharedFiles($id)
     {
-        $images = array(); // Default
+        $files = array(); // Default
         // Get messages
-        $msgs = $this->fetchMessagesQuery($user_id)->orderBy('created_at', 'DESC');
+        $msgs = $this->fetchMessagesQuery($id)->orderBy('created_at', 'DESC');
         if ($msgs->count() > 0) {
             foreach ($msgs->get() as $msg) {
                 // If message has attachment
                 if ($msg->attachment) {
                     $attachment = json_decode($msg->attachment);
-                    // determine the type of the attachment
-                    in_array(pathinfo($attachment->new_name, PATHINFO_EXTENSION), $this->getAllowedImages())
-                        ? array_push($images, $attachment->new_name) : '';
+                    array_push($files, $attachment);
                 }
             }
+            /*
+             * in_array(pathinfo($attachment->new_name, PATHINFO_EXTENSION), $this->getAllowedImages())
+                        ? array_push($files, $attachment->new_name) : '';
+             * */
         }
-        return $images;
+        return $files;
     }
 
     /**
