@@ -196,11 +196,13 @@ class MessagesController extends Controller
         $messages = $query->paginate($request->per_page ?? $this->perPage);
         $totalMessages = $messages->total();
         $lastPage = $messages->lastPage();
+        $conv = ChConversation::find($request['id']);
         $response = [
             'total' => $totalMessages,
             'last_page' => $lastPage,
             'last_message_id' => collect($messages->items())->last()->id ?? null,
             'messages' => '',
+            'status' => $conv->status ?? 0
         ];
 
         // if there is no messages yet.
@@ -288,7 +290,7 @@ class MessagesController extends Controller
     public function updateContactItem(Request $request)
     {
         // Get conversation data
-        $conversation = ChConversation::where('id', $request['user_id'])->first();
+        $conversation = ChConversation::where('id', $request['id'])->first();
         if(!$conversation){
             return Response::json([
                 'message' => 'Conversation not found!',

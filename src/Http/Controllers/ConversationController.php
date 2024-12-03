@@ -120,4 +120,26 @@ class ConversationController extends Controller
             'conversation' => $conversation,
         ]);
     }
+
+    public function update(Request $request, ChConversation $conversation)
+    {
+        // Validation Data
+        $request->validate([
+            'name' => 'required|max:100',
+            'batch_id' => 'required|integer|min:1'
+        ], [
+            'name.required' => __('Please give a conversation name')
+        ]);
+
+        $batch_id = $request->get('batch_id');
+        $batch = Batch::find($batch_id);
+        if ($batch) {
+            $conversation->name = $request->get('name');
+            $conversation->save();
+            return Response::json([
+                'fetch' => true,
+                'conversation' => $conversation,
+            ]);
+        }
+    }
 }

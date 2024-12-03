@@ -97,6 +97,7 @@ Route::post('/setActiveStatus', 'MessagesController@setActiveStatus')->name('act
 */
 Route::get('/conversation', 'ConversationController@index')->name('conv.index');
 Route::post('/conversation', 'ConversationController@store')->name('conv.create');
+Route::post('/conversation/{conversation}', 'ConversationController@update')->name('conv.update');
 Route::get('/conversation/{conversation}', 'ConversationController@view')->name('conv.view');
 Route::post('/conversation/{conversation}/messages', 'MessagesController@fetch')->name('conv.messages');
 /**
