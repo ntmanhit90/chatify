@@ -179,7 +179,7 @@ class MessagesController extends Controller
                 // Store Batch file
                 $batch_file = new BatchFile();
                 $batch_file->batch_id = $conversation->batch_id;
-                $batch_file->file = $attachment;
+                $batch_file->file = config('chatify.attachments.folder') . '/' . $attachment;
                 $batch_file->key = $file->getClientOriginalName();
                 $batch_file->metadata = null;
                 $batch_file->size = Number::fileSize($file->getSize());

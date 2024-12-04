@@ -14,6 +14,7 @@ use Chatify\Facades\ChatifyMessenger as Chatify;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Request as FacadesRequest;
+use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
 use App\Models\Batch;
 class ConversationController extends Controller
@@ -22,6 +23,7 @@ class ConversationController extends Controller
 
     public function index(Request $request)
     {
+        $batch_id = Session::get('job_selected');
         $q = $request->get('input');
         $user_id = Auth::user()->id;
         $rows = ChConversation::select([
@@ -31,6 +33,7 @@ class ConversationController extends Controller
         ])
             ->where([
                 'ch_conversation_users.user_id' => $user_id,
+                'ch_conversations.batch_id' => $batch_id,
             ])
             ->join('ch_conversation_users', 'ch_conversations.id', '=', 'ch_conversation_users.conversation_id')
             ->orderBy('ch_conversations.last_message_datetime', 'DESC');
