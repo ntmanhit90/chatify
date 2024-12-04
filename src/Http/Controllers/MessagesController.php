@@ -2,6 +2,7 @@
 
 namespace Chatify\Http\Controllers;
 
+use App\Models\BatchFile;
 use Chatify\Models\ChConversationUser;
 use Carbon\Carbon;
 use Chatify\Models\ChConversation;
@@ -18,6 +19,7 @@ use Chatify\Facades\ChatifyMessenger as Chatify;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Request as FacadesRequest;
+use Illuminate\Support\Number;
 use Illuminate\Support\Str;
 use App\Models\Batch;
 class MessagesController extends Controller
@@ -173,7 +175,17 @@ class MessagesController extends Controller
             ])->increment('unread_count');
 
             // Store attachment
-
+            if (!empty($attachment)) {
+                // Store Batch file
+                $batch_file = new BatchFile();
+                $batch_file->batch_id = $conversation->batch_id;
+                $batch_file->file = $attachment;
+                $batch_file->key = $file->getClientOriginalName();
+                $batch_file->metadata = null;
+                $batch_file->size = Number::fileSize($file->getSize());
+                $batch_file->ext = $file->getClientOriginalExtension();
+                $batch_file->save();
+            }
         }
 
         // send the response
