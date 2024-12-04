@@ -139,7 +139,7 @@ class MessagesController extends Controller
         if (!$error->status) {
             $user_id = Auth::user()->id;
             $message = Chatify::newMessage([
-                'from_id' => Auth::user()->id,
+                'from_id' => $user_id,
                 'conversation_id' => $request['id'],
                 'to_id' => 0,
                 'body' => htmlentities(trim($request['message']), ENT_QUOTES, 'UTF-8'),
@@ -151,14 +151,12 @@ class MessagesController extends Controller
 
             // Push notify
             $messageData = Chatify::parseMessage($message);
-            if (Auth::user()->id != $request['id']) {
-                Chatify::push("private-chatify.".$request['id'], 'messaging', [
-                    'from_id' => Auth::user()->id,
-                    'conversation_id' => $request['id'],
-                    'to_id' => 0,
-                    'message' => Chatify::messageCard($messageData, true)
-                ]);
-            }
+            Chatify::push('private-chatify', 'messaging', [
+                'from_id' => Auth::user()->id,
+                'conversation_id' => $request['id'],
+                'to_id' => 0,
+                'message' => Chatify::messageCard($messageData, true)
+            ]);
 
             // Update last_message_id for conversation
             $conversation = ChConversation::find($request['id']);
@@ -173,6 +171,9 @@ class MessagesController extends Controller
                 ['conversation_id', $request['id']],
                 ['user_id', '!=', $user_id],
             ])->increment('unread_count');
+
+            // Store attachment
+
         }
 
         // send the response

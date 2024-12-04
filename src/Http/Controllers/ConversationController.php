@@ -24,9 +24,14 @@ class ConversationController extends Controller
     {
         $q = $request->get('input');
         $user_id = Auth::user()->id;
-        $rows = ChConversation::where([
-            'ch_conversation_users.user_id' => $user_id,
+        $rows = ChConversation::select([
+            'ch_conversations.*',
+            'ch_conversation_users.user_id',
+            'ch_conversation_users.unread_count',
         ])
+            ->where([
+                'ch_conversation_users.user_id' => $user_id,
+            ])
             ->join('ch_conversation_users', 'ch_conversations.id', '=', 'ch_conversation_users.conversation_id')
             ->orderBy('ch_conversations.last_message_datetime', 'DESC');
 
@@ -134,6 +139,9 @@ class ConversationController extends Controller
         $batch_id = $request->get('batch_id');
         $batch = Batch::find($batch_id);
         if ($batch) {
+            if ($request->get('status') >= 0) {
+                $conversation->status = $request->get('status') ? 1 : 0;
+            }
             $conversation->name = $request->get('name');
             $conversation->save();
             return Response::json([
