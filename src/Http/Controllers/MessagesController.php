@@ -2,6 +2,7 @@
 
 namespace Chatify\Http\Controllers;
 
+use App\Models\BatchFile;
 use Chatify\Models\ChConversationUser;
 use Carbon\Carbon;
 use Chatify\Models\ChConversation;
@@ -18,6 +19,7 @@ use Chatify\Facades\ChatifyMessenger as Chatify;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Request as FacadesRequest;
+use Illuminate\Support\Number;
 use Illuminate\Support\Str;
 use App\Models\Batch;
 class MessagesController extends Controller
@@ -139,7 +141,7 @@ class MessagesController extends Controller
         if (!$error->status) {
             $user_id = Auth::user()->id;
             $message = Chatify::newMessage([
-                'from_id' => Auth::user()->id,
+                'from_id' => $user_id,
                 'conversation_id' => $request['id'],
                 'to_id' => 0,
                 'body' => htmlentities(trim($request['message']), ENT_QUOTES, 'UTF-8'),
@@ -151,14 +153,12 @@ class MessagesController extends Controller
 
             // Push notify
             $messageData = Chatify::parseMessage($message);
-            if (Auth::user()->id != $request['id']) {
-                Chatify::push("private-chatify.".$request['id'], 'messaging', [
-                    'from_id' => Auth::user()->id,
-                    'conversation_id' => $request['id'],
-                    'to_id' => 0,
-                    'message' => Chatify::messageCard($messageData, true)
-                ]);
-            }
+            Chatify::push('private-chatify', 'messaging', [
+                'from_id' => Auth::user()->id,
+                'conversation_id' => $request['id'],
+                'to_id' => 0,
+                'message' => Chatify::messageCard($messageData, true)
+            ]);
 
             // Update last_message_id for conversation
             $conversation = ChConversation::find($request['id']);
@@ -173,6 +173,19 @@ class MessagesController extends Controller
                 ['conversation_id', $request['id']],
                 ['user_id', '!=', $user_id],
             ])->increment('unread_count');
+
+            // Store attachment
+            if (!empty($attachment)) {
+                // Store Batch file
+                $batch_file = new BatchFile();
+                $batch_file->batch_id = $conversation->batch_id;
+                $batch_file->file = config('chatify.attachments.folder') . '/' . $attachment;
+                $batch_file->key = $file->getClientOriginalName();
+                $batch_file->metadata = null;
+                $batch_file->size = Number::fileSize($file->getSize());
+                $batch_file->ext = $file->getClientOriginalExtension();
+                $batch_file->save();
+            }
         }
 
         // send the response

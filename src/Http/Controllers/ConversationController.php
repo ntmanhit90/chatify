@@ -14,6 +14,7 @@ use Chatify\Facades\ChatifyMessenger as Chatify;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Request as FacadesRequest;
+use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
 use App\Models\Batch;
 class ConversationController extends Controller
@@ -24,11 +25,19 @@ class ConversationController extends Controller
     {
         $q = $request->get('input');
         $user_id = Auth::user()->id;
-        $rows = ChConversation::where([
-            'ch_conversation_users.user_id' => $user_id,
+        $batch_id = Session::get('job_selected');
+
+        $rows = ChConversation::select([
+            'ch_conversations.*',
+            'ch_conversation_users.user_id',
+            'ch_conversation_users.unread_count',
         ])
-            ->join('ch_conversation_users', 'ch_conversations.id', '=', 'ch_conversation_users.conversation_id')
-            ->orderBy('ch_conversations.last_message_datetime', 'DESC');
+        ->where([
+            'ch_conversation_users.user_id' => $user_id,
+            'ch_conversations.batch_id' => $batch_id,
+        ])
+        ->join('ch_conversation_users', 'ch_conversations.id', '=', 'ch_conversation_users.conversation_id')
+        ->orderBy('ch_conversations.last_message_datetime', 'DESC');
 
         if (!empty($q)) {
             $rows = $rows->where('name', 'LIKE', "%{$q}%");
@@ -152,6 +161,9 @@ class ConversationController extends Controller
         $batch_id = $request->get('batch_id');
         $batch = Batch::find($batch_id);
         if ($batch) {
+            if ($request->get('status') >= 0) {
+                $conversation->status = $request->get('status') ? 1 : 0;
+            }
             $conversation->name = $request->get('name');
             $conversation->save();
             return Response::json([
