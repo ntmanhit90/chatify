@@ -96,6 +96,7 @@ Route::post('/setActiveStatus', 'MessagesController@setActiveStatus')->name('act
 * [GroupCHAT]
 */
 Route::get('/conversation', 'ConversationController@index')->name('conv.index');
+Route::get('/conversation/info/{conversation}', 'ConversationController@detail')->name('conv.detail');
 Route::post('/conversation', 'ConversationController@store')->name('conv.create');
 Route::post('/conversation/{conversation}', 'ConversationController@update')->name('conv.update');
 Route::get('/conversation/{conversation}', 'ConversationController@view')->name('conv.view');

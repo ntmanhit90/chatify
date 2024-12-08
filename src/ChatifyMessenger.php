@@ -470,6 +470,7 @@ class ChatifyMessenger
         $conv = new Conversation();
         $conv->name = $data['name'];
         $conv->batch_id = $data['batch_id'];
+        $conv->tx_id = $data['tx_id'] ?? null;
         $conv->status = config('chatify.constants.conv_status_open');
         $conv->save();
         return $conv;

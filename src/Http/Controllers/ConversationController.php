@@ -14,7 +14,6 @@ use Chatify\Facades\ChatifyMessenger as Chatify;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Request as FacadesRequest;
-use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
 use App\Models\Batch;
 class ConversationController extends Controller
@@ -23,18 +22,11 @@ class ConversationController extends Controller
 
     public function index(Request $request)
     {
-        $batch_id = Session::get('job_selected');
         $q = $request->get('input');
         $user_id = Auth::user()->id;
-        $rows = ChConversation::select([
-            'ch_conversations.*',
-            'ch_conversation_users.user_id',
-            'ch_conversation_users.unread_count',
+        $rows = ChConversation::where([
+            'ch_conversation_users.user_id' => $user_id,
         ])
-            ->where([
-                'ch_conversation_users.user_id' => $user_id,
-                'ch_conversations.batch_id' => $batch_id,
-            ])
             ->join('ch_conversation_users', 'ch_conversations.id', '=', 'ch_conversation_users.conversation_id')
             ->orderBy('ch_conversations.last_message_datetime', 'DESC');
 
@@ -69,7 +61,7 @@ class ConversationController extends Controller
     {
         // Validation Data
         $request->validate([
-            'name' => 'required|max:100|unique:ch_conversations',
+            'name' => 'required|max:100', // |unique:ch_conversations
             'batch_id' => 'required|integer|min:1',
             'tx_id' => 'nullable'
         ], [
@@ -107,6 +99,11 @@ class ConversationController extends Controller
                 ]);
             }
 
+            // Create message
+            $message = new MessagesController();
+            $request->request->add(['id' => $conv->id]);
+            $message->send($request);
+
             // send the response
             return Response::json([
                 'status' => '200',
@@ -129,6 +126,19 @@ class ConversationController extends Controller
         ]);
     }
 
+    public function detail(Request $request, ChConversation $conversation)
+    {
+        $html = view('Chatify::layouts.listItem', [
+            'get' => 'conversation_detail',
+            'count_tx' => !empty($conversation->tx_id) ? count(explode(',', $conversation->tx_id)) : null,
+            'id' => $conversation->id
+        ])->render();
+
+        return Response::json([
+            'information' => $html,
+        ], 200);
+    }
+
     public function update(Request $request, ChConversation $conversation)
     {
         // Validation Data
@@ -142,9 +152,6 @@ class ConversationController extends Controller
         $batch_id = $request->get('batch_id');
         $batch = Batch::find($batch_id);
         if ($batch) {
-            if ($request->get('status') >= 0) {
-                $conversation->status = $request->get('status') ? 1 : 0;
-            }
             $conversation->name = $request->get('name');
             $conversation->save();
             return Response::json([
