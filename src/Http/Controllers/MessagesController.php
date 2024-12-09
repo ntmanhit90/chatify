@@ -19,6 +19,7 @@ use Chatify\Facades\ChatifyMessenger as Chatify;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Request as FacadesRequest;
+use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Number;
 use Illuminate\Support\Str;
 use App\Models\Batch;
@@ -50,11 +51,13 @@ class MessagesController extends Controller
      */
     public function index( $id = null)
     {
+        $batch_id = Session::get('job_selected');
         $messenger_color = Auth::user()->messenger_color;
         return view('Chatify::pages.app', [
             'id' => $id ?? 0,
             'messengerColor' => $messenger_color ? $messenger_color : Chatify::getFallbackColor(),
             'dark_mode' => Auth::user()->dark_mode < 1 ? 'light' : 'dark',
+            'batch_id' => $batch_id,
         ]);
     }
 
@@ -153,7 +156,8 @@ class MessagesController extends Controller
 
             // Push notify
             $messageData = Chatify::parseMessage($message);
-            Chatify::push('private-chatify', 'messaging', [
+            $batch_id = Session::get('job_selected');
+            Chatify::push('private-chatify-' . $batch_id, 'messaging', [
                 'from_id' => Auth::user()->id,
                 'conversation_id' => $request['id'],
                 'to_id' => 0,

@@ -113,6 +113,15 @@ class ConversationController extends Controller
             $request->request->add(['id' => $conv->id]);
             $message->send($request);
 
+            // Push notify
+            $user = Auth::user();
+            Chatify::push('private-chatify-' . $batch_id, 'conversation.created', [
+                'from_id' => Auth::user()->id,
+                'conversation_id' => $conv->id,
+                'to_id' => 0,
+                'conversation' => Chatify::getContactItem($user, $conv)
+            ]);
+
             // send the response
             return Response::json([
                 'status' => '200',
@@ -148,6 +157,15 @@ class ConversationController extends Controller
         ], 200);
     }
 
+    public function card(Request $request, ChConversation $conversation)
+    {
+        $user = Auth::user();
+        return Response::json([
+            'html' => Chatify::getContactItem($user, $conversation),
+            'conversation' => $conversation
+        ], 200);
+    }
+
     public function update(Request $request, ChConversation $conversation)
     {
         // Validation Data
@@ -166,6 +184,15 @@ class ConversationController extends Controller
             }
             $conversation->name = $request->get('name');
             $conversation->save();
+
+            // Push notify
+            $user = Auth::user();
+            Chatify::push('private-chatify-' . $batch_id, 'conversation.updated', [
+                'from_id' => Auth::user()->id,
+                'conversation_id' => $conversation->id,
+                'to_id' => 0
+            ]);
+
             return Response::json([
                 'fetch' => true,
                 'conversation' => $conversation,
