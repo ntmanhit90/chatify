@@ -2,6 +2,7 @@
 
 namespace Chatify\Http\Controllers;
 
+use App\Jobs\MessageQueue;
 use App\Models\BatchFile;
 use Chatify\Models\ChConversationUser;
 use Carbon\Carbon;
@@ -142,7 +143,8 @@ class MessagesController extends Controller
         }
 
         if (!$error->status) {
-            $user_id = Auth::user()->id;
+            $user = Auth::user();
+            $user_id = $user->id;
             $message = Chatify::newMessage([
                 'from_id' => $user_id,
                 'conversation_id' => $request['id'],
@@ -158,7 +160,7 @@ class MessagesController extends Controller
             $messageData = Chatify::parseMessage($message);
             $batch_id = Session::get('job_selected');
             Chatify::push('private-chatify-' . $batch_id, 'messaging', [
-                'from_id' => Auth::user()->id,
+                'from_id' => $user_id,
                 'conversation_id' => $request['id'],
                 'to_id' => 0,
                 'message' => Chatify::messageCard($messageData, true)
@@ -190,6 +192,9 @@ class MessagesController extends Controller
                 $batch_file->ext = $file->getClientOriginalExtension();
                 $batch_file->save();
             }
+
+            // Push to notify
+            dispatch(new MessageQueue($user, $batch_id, $user->name . ' commenting to conversation ' . $conversation->name))->onQueue('conversation');
         }
 
         // send the response

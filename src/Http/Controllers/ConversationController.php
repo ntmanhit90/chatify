@@ -2,6 +2,7 @@
 
 namespace Chatify\Http\Controllers;
 
+use App\Http\Controllers\NotificationController;
 use Chatify\Models\ChConversation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -32,12 +33,12 @@ class ConversationController extends Controller
             'ch_conversation_users.user_id',
             'ch_conversation_users.unread_count',
         ])
-        ->where([
-            'ch_conversation_users.user_id' => $user_id,
-            'ch_conversations.batch_id' => $batch_id,
-        ])
-        ->join('ch_conversation_users', 'ch_conversations.id', '=', 'ch_conversation_users.conversation_id')
-        ->orderBy('ch_conversations.last_message_datetime', 'DESC');
+            ->where([
+                'ch_conversation_users.user_id' => $user_id,
+                'ch_conversations.batch_id' => $batch_id,
+            ])
+            ->join('ch_conversation_users', 'ch_conversations.id', '=', 'ch_conversation_users.conversation_id')
+            ->orderBy('ch_conversations.last_message_datetime', 'DESC');
 
         if (!empty($q)) {
             $rows = $rows->where('name', 'LIKE', "%{$q}%");
@@ -87,7 +88,8 @@ class ConversationController extends Controller
                 'tx_id' => $request->get('tx_id'),
             ]);
 
-            $user_id = Auth::user()->id;
+            $user = Auth::user();
+            $user_id = $user->id;
             Chatify::newConversationUser([
                 'conversation_id' => $conv->id,
                 'user_id' => $user_id
@@ -98,14 +100,29 @@ class ConversationController extends Controller
                     'conversation_id' => $conv->id,
                     'user_id' => $batch->created_by
                 ]);
+                // Notification
+                $notify = new NotificationController();
+                $notify->create([
+                    'message' => 'Job '.$batch->name.' ('.$batch->id.'): '.$user->name.' has been created new conversation - '.$conv->name.' !!',
+                    'link' => null,
+                    'event' => 'conv.created'
+                ], $batch->id, $user_id);
             }
 
             // Check for ADMIN
-            if ($user_id != 1) {
+            if ($user_id != config('app.pusher.admin_id')) {
                 Chatify::newConversationUser([
                     'conversation_id' => $conv->id,
-                    'user_id' => 1
+                    'user_id' => config('app.pusher.admin_id')
                 ]);
+
+                // Notification
+                $notify = new NotificationController();
+                $notify->create([
+                    'message' => 'Job '.$batch->name.' ('.$batch->id.'): '.$user->name.' has been created new conversation - '.$conv->name.' !!',
+                    'link' => null,
+                    'event' => 'conv.created'
+                ], $batch->id, config('app.pusher.admin_id'));
             }
 
             // Create message
